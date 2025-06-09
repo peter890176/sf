@@ -1,0 +1,27 @@
+services:
+  # Redis 服務
+  redis:
+    image: "redis:alpine" # 使用輕量的 Redis 映像檔
+    container_name: paramount_redis
+    ports:
+      - "6379:6379" # 將容器的 6379 連接埠映射到主機，方便本地偵錯
+    volumes:
+      - redis_data:/data # 持久化 Redis 資料
+
+  # Python 應用程式服務
+  app:
+    container_name: paramount_scraper_app
+    build: . # 指示 Docker Compose 使用當前目錄的 Dockerfile 來建置映像檔
+    # env_file:
+    #   - .env # 從 .env 檔案載入環境變數 (例如 FACEBOOK_EMAIL, FACEBOOK_PASSWORD)
+    depends_on:
+      - redis # 設定 app 服務依賴於 redis 服務，確保 redis 會先啟動
+    environment:
+      # 在這裡可以設定環境變數，例如 Redis 的主機位置
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    volumes:
+      - .:/app # 將本地的程式碼掛載到容器中，方便開發時即時更新
+
+volumes:
+  redis_data: 

@@ -1,0 +1,19 @@
+# .gitignore
+
+# 忽略 Python 虛擬環境
+venv/
+.venv/
+
+# 忽略 Python 快取檔案
+__pycache__/
+*.pyc
+
+# 忽略編輯器和 OS 產生的檔案
+.vscode/
+.idea/
+*.DS_Store
+
+# 忽略敏感資訊
+cookies.json
+.env 
+auth_state.json 
