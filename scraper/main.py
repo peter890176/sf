@@ -3,11 +3,15 @@ import asyncio
 import os
 import redis
 import json
+import logging
 from dotenv import load_dotenv
 from scraper.crawler import FacebookScraper
 
 # 在程式最開始加載 .env 檔案中的環境變數
 load_dotenv()
+
+# 強制設定日誌記錄，確保爬蟲過程可以顯示在終端機
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def store_data_to_redis(redis_client, posts):
     """
