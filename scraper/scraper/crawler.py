@@ -21,7 +21,7 @@ class FacebookScraper:
 
     async def _extract_data_from_article(self, article_element):
         """
-        v23: Final simplified & robust extraction method based on number ranking.
+        v24: Add "See More" click and robust category detection.
         """
         post_data = {
             'UID': str(uuid.uuid4()),
@@ -48,22 +48,40 @@ class FacebookScraper:
             self.processed_urls.add(post_url)
             post_data['PostURL'] = post_url
             post_data['Timestamp'] = await link_element.inner_text()
-            logging.info(f"v22: Processing Post URL: {post_url}")
+            logging.info(f"v24: Processing Post URL: {post_url}")
 
-            if '/videos/' in post_url or '/reel/' in post_url:
-                post_data['Category'] = 'video'
-            elif '/photos/' in post_url or '/photo/' in post_url:
-                post_data['Category'] = 'image'
+            # 2. Click "See More" to expand content
+            try:
+                # This selector is more reliable for the "See more" button
+                see_more_selector = 'div[role="button"]:has-text("查看更多")'
+                see_more_button = await article_element.query_selector(see_more_selector)
+                if see_more_button:
+                    await see_more_button.click()
+                    await asyncio.sleep(1) # Wait for content to load
+                    logging.info("v24: Clicked 'See More' to expand content.")
+            except Exception as e:
+                logging.warning(f"v24: 'See More' button not found or not clickable: {e}")
 
-            # 2. Extract Content
+            # 3. Extract Content (after expansion)
             content_selector = 'div[data-ad-preview="message"], div[data-ad-preview="caption"]'
             content_element = await article_element.query_selector(content_selector)
             post_data['Content'] = await content_element.inner_text() if content_element else ""
 
-            # 3. Extract all counts using number ranking
+            # 4. Detect Category by content
+            video_element = await article_element.query_selector('video')
+            if video_element:
+                post_data['Category'] = 'video'
+            else:
+                image_element = await article_element.query_selector('img[data-visualcompletion="media-vc-image"]')
+                if image_element:
+                    post_data['Category'] = 'image'
+                else:
+                    post_data['Category'] = 'text'
+
+            # 5. Extract all counts using number ranking
             all_spans = await article_element.query_selector_all('span')
             
-            # Step 3.1: Find all numbers in spans and rank them
+            # Step 5.1: Find all numbers in spans and rank them
             all_numbers_in_spans = []
             for span in all_spans:
                 text = await span.inner_text()
@@ -77,7 +95,7 @@ class FacebookScraper:
             if len(unique_numbers) > 1:
                 post_data['ShareCount'] = unique_numbers[1]
 
-            # Step 3.2: Find comments separately, as they might be text ("留言")
+            # Step 5.2: Find comments separately, as they might be text ("留言")
             comment_found = False
             for span in all_spans:
                 text = await span.inner_text()
@@ -96,11 +114,11 @@ class FacebookScraper:
                         post_data['ResponseCount'] = 0
                         break
 
-            logging.info(f"v23: Extracted counts - Reactions: {post_data['ReactionCount']}, Comments: {post_data['ResponseCount']}, Shares: {post_data['ShareCount']}")
+            logging.info(f"v24: Extracted data - Category: {post_data['Category']}, Reactions: {post_data['ReactionCount']}, Comments: {post_data['ResponseCount']}, Shares: {post_data['ShareCount']}")
             return post_data
 
         except Exception as e:
-            logging.error(f"v23: Error extracting data from an article: {e}", exc_info=True)
+            logging.error(f"v24: Error extracting data from an article: {e}", exc_info=True)
             return None
 
     def _parse_count(self, count_str):

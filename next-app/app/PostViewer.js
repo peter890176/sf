@@ -97,10 +97,13 @@ export default function PostViewer() {
                       </h5>
                       <p className="card-text">{post.Content}</p>
                     </div>
-                    <ul className="list-group list-group-flush">
-                      <li className="list-group-item">👍 心情: {post.ReactionCount}</li>
-                      <li className="list-group-item">💬 留言: {post.ResponseCount}</li>
-                    </ul>
+                    <div className="card-footer text-muted">
+                      <ul className="list-group list-group-flush">
+                        <li className="list-group-item">👍 心情: {post.ReactionCount}</li>
+                        <li className="list-group-item">💬 留言: {post.ResponseCount}</li>
+                        <li className="list-group-item">🔁 分享: {post.ShareCount}</li>
+                      </ul>
+                    </div>
                     {post.VideoURL && (
                       <div className="card-footer">
                         <a href={post.VideoURL} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">觀看影片</a>
