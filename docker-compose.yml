@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # Redis 服務
   redis:
@@ -6,22 +8,36 @@ services:
     ports:
       - "6379:6379" # 將容器的 6379 連接埠映射到主機，方便本地偵錯
     volumes:
-      - redis_data:/data # 持久化 Redis 資料
+      - redis-data:/data # 持久化 Redis 資料
 
-  # Python 應用程式服務
-  app:
-    container_name: paramount_scraper_app
-    build: . # 指示 Docker Compose 使用當前目錄的 Dockerfile 來建置映像檔
-    # env_file:
-    #   - .env # 從 .env 檔案載入環境變數 (例如 FACEBOOK_EMAIL, FACEBOOK_PASSWORD)
+  # Python 爬蟲服務 (舊的 app 服務)
+  scraper:
+    container_name: paramount_scraper
+    build: 
+      context: ./scraper # 指向新的 scraper 資料夾
+      dockerfile: Dockerfile # Dockerfile 現在在 scraper 資料夾內
     depends_on:
-      - redis # 設定 app 服務依賴於 redis 服務，確保 redis 會先啟動
+      - redis
     environment:
-      # 在這裡可以設定環境變數，例如 Redis 的主機位置
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     volumes:
-      - .:/app # 將本地的程式碼掛載到容器中，方便開發時即時更新
+      - ./scraper:/app # 將本地的 scraper 資料夾掛載到容器的 /app
+
+  # Next.js 全端應用服務
+  next-app:
+    container_name: paramount_viewer
+    build:
+      context: ./next-app # 指向 next-app 資料夾
+      dockerfile: Dockerfile # 指向 Next.js 的 Dockerfile
+    depends_on:
+      - redis
+    ports:
+      - "3000:3000" # 將 Next.js 的 3000 port 映射出來
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - NEXT_PUBLIC_API_URL=http://localhost:3000/api/posts
 
 volumes:
-  redis_data: 
+  redis-data: 

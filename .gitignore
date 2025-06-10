@@ -17,3 +17,9 @@ __pycache__/
 cookies.json
 .env 
 auth_state.json 
+debug_page.html
+visitor_mode_end_screenshot.png
+
+# Scraper specific
+scraper/__pycache__/
+scraper/visitor_mode_end_screenshot.png 
