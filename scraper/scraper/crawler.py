@@ -21,7 +21,7 @@ class FacebookScraper:
 
     async def _extract_data_from_article(self, article_element):
         """
-        v24: Add "See More" click and robust category detection.
+        v25: Final category detection based on link structure.
         """
         post_data = {
             'UID': str(uuid.uuid4()),
@@ -35,20 +35,20 @@ class FacebookScraper:
             link_element = await article_element.query_selector(perm_link_selector)
 
             if not link_element:
-                logging.warning("v23: Could not find a permalink. Skipping article.")
+                logging.warning("v25: Could not find a permalink. Skipping article.")
                 return None
 
             post_url = await link_element.get_attribute('href')
             post_url = urljoin(self.base_url, post_url).split('?')[0]
 
             if post_url in self.processed_urls:
-                logging.info(f"v23: Skipping already processed URL: {post_url}")
+                logging.info(f"v25: Skipping already processed URL: {post_url}")
                 return None
             
             self.processed_urls.add(post_url)
             post_data['PostURL'] = post_url
             post_data['Timestamp'] = await link_element.inner_text()
-            logging.info(f"v24: Processing Post URL: {post_url}")
+            logging.info(f"v25: Processing Post URL: {post_url}")
 
             # 2. Click "See More" to expand content
             try:
@@ -58,22 +58,23 @@ class FacebookScraper:
                 if see_more_button:
                     await see_more_button.click()
                     await asyncio.sleep(1) # Wait for content to load
-                    logging.info("v24: Clicked 'See More' to expand content.")
+                    logging.info("v25: Clicked 'See More' to expand content.")
             except Exception as e:
-                logging.warning(f"v24: 'See More' button not found or not clickable: {e}")
+                logging.warning(f"v25: 'See More' button not found or not clickable: {e}")
 
             # 3. Extract Content (after expansion)
             content_selector = 'div[data-ad-preview="message"], div[data-ad-preview="caption"]'
             content_element = await article_element.query_selector(content_selector)
             post_data['Content'] = await content_element.inner_text() if content_element else ""
 
-            # 4. Detect Category by content
+            # 4. Detect Category by content (v25: final version)
             video_element = await article_element.query_selector('video')
             if video_element:
                 post_data['Category'] = 'video'
             else:
-                image_element = await article_element.query_selector('img[data-visualcompletion="media-vc-image"]')
-                if image_element:
+                # An image post usually contains a link to a photo page
+                image_link_element = await article_element.query_selector('a[href*="/photo/"]')
+                if image_link_element:
                     post_data['Category'] = 'image'
                 else:
                     post_data['Category'] = 'text'
@@ -114,11 +115,11 @@ class FacebookScraper:
                         post_data['ResponseCount'] = 0
                         break
 
-            logging.info(f"v24: Extracted data - Category: {post_data['Category']}, Reactions: {post_data['ReactionCount']}, Comments: {post_data['ResponseCount']}, Shares: {post_data['ShareCount']}")
+            logging.info(f"v25: Extracted data - Category: {post_data['Category']}, Reactions: {post_data['ReactionCount']}, Comments: {post_data['ResponseCount']}, Shares: {post_data['ShareCount']}")
             return post_data
 
         except Exception as e:
-            logging.error(f"v24: Error extracting data from an article: {e}", exc_info=True)
+            logging.error(f"v25: Error extracting data from an article: {e}", exc_info=True)
             return None
 
     def _parse_count(self, count_str):
